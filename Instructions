@@ -1,0 +1,9 @@
+Only to create the environment: python3 -m venv .venv
+
+Activate the environment: source .venv/bin/activate
+
+To install packages: write the name in "requirements", and then run: pip install -r requirements
+
+Open vs code (in the general folder): "code ."
+
+Run: OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMBA_NUM_THREADS=8 python "name of the file"

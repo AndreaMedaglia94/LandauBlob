@@ -1,0 +1,44 @@
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Cache Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Risultati, figure, output in qualunque sottocartella
+**/Results/
+**/Result/
+**/outputs/
+**/output/
+**/Figures/
+**/Figure/
+**/plots/
+**/plot/
+
+# File di sistema/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Archivi compressi
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Dati e output numerici
+**/Data/
+**/data/
+*.npz
+*.npy
+*.mat
+*.h5
+*.hdf5
+
+# File metadata Windows/WSL
+*:Zone.Identifier
