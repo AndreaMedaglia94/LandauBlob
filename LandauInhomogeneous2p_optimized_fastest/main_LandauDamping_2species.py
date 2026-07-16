@@ -1,13 +1,7 @@
 """
 Two-species, space-inhomogeneous C-PIC code for Landau damping in 1D-2V.
-
-Species 1 is the light/electron species, species 2 the heavy/ion species.
-This file merges the inhomogeneous one-species C-PIC structure with the
-multispecies Landau collision force.
-
-The defaults are small.  Increase Nx, Nv*_*, Nc*, and random_batches only
-after checking that the workflow is correct on the target machine.
 """
+
 import os
 import time
 import numpy as np
@@ -42,10 +36,8 @@ BASE_KWARGS = dict(
     Nv2_v1=32,
     Nv2_v2=32,
     Nc2=2,
-    #Lv2_v1=4.0,
-    #Lv2_v2=4.0,
 
-    # Species.  The defaults are not real electron/proton values.
+    # Species.
     m1=1.0,
     m2=2.0,
     charge1=-1.0,
@@ -59,22 +51,21 @@ BASE_KWARGS = dict(
     gam=-2.0,
     collision_strength=0.1,  # 0.0 skips collisions entirely in the time loop.
     enable_collisions=True,
-    auto_B_from_charges_masses=True,
     # If auto_B_from_charges_masses=False, set B11,B21,B12,B22 manually.
+    auto_B_from_charges_masses=False,
     B11=1.0,
     B21=1.0,
     B12=0.04,
     B22=0.04,
 
     # Compact splines only: 1=hat, 2=quadratic, 3=cubic.
-    spline_order=1,
+    spline_order=3,
 
     # Time.
     T=20.0,
     dt=1.0 / 50.0,
 
-    # Landau damping: electrostatic Ampere mode.  Use field_solver='yee' later
-    # for Weibel/full electromagnetic tests.
+    # Landau damping: electrostatic Ampere mode.
     field_solver="ampere",
     current_model="charge",
     initial_field="analytic_landau",
@@ -82,7 +73,7 @@ BASE_KWARGS = dict(
 
     # Collision acceleration speedups.
     random_batch=True,
-    random_batches=32,
+    random_batches=8,
 
     # Conservative correction for the collision part only.
     conservative_rescaling=True,
