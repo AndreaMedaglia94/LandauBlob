@@ -11,8 +11,16 @@ def kinetic_energy(v11, v12, w1, v21, v22, w2, par):
            0.5 * par.m2 * np.sum(w2 * (v21 * v21 + v22 * v22))
 
 
+def electric_energy(E1, E2, par):
+    return 0.5 * par.eta * (np.sum(E1 * E1) + np.sum(E2 * E2))
+
+
+def magnetic_energy(B3, par):
+    return 0.5 * par.eta * np.sum(B3 * B3)
+
+
 def field_energy(E1, E2, B3, par):
-    return 0.5 * par.eta * (np.sum(E1 * E1) + np.sum(E2 * E2) + np.sum(B3 * B3))
+    return electric_energy(E1, E2, par) + magnetic_energy(B3, par)
 
 
 def total_mass_weighted_momentum(v11, v12, w1, v21, v22, w2, par):
@@ -51,6 +59,10 @@ def total_bulk_temperature(v11, v12, w1, v21, v22, w2, par):
 
 def electric_l2(E1, par):
     return np.sqrt(par.eta * np.sum(E1 * E1))
+
+
+def magnetic_l2(B3, par):
+    return np.sqrt(par.eta * np.sum(B3 * B3))
 
 
 def regularized_entropy_from_ftilde(ft1, ft2, w1, w2):
@@ -100,6 +112,7 @@ class History:
     def __init__(self):
         self.t = []
         self.E1_l2 = []
+        self.B3_l2 = []
         self.kinetic = []
         self.field = []
         self.total_energy = []
@@ -126,6 +139,7 @@ class History:
         _, Ttot, _ = total_bulk_temperature(v11, v12, w1, v21, v22, w2, par)
         self.t.append(float(t))
         self.E1_l2.append(float(electric_l2(E1, par)))
+        self.B3_l2.append(float(magnetic_l2(B3, par)))
         self.kinetic.append(float(ke))
         self.field.append(float(fe))
         self.total_energy.append(float(ke + fe))
@@ -144,7 +158,7 @@ class History:
 
     def as_dict(self):
         names = (
-            "t", "E1_l2", "kinetic", "field", "total_energy", "mom1", "mom2",
+            "t", "E1_l2", "B3_l2", "kinetic", "field", "total_energy", "mom1", "mom2",
             "current1", "current2", "U1_v1", "U1_v2", "U2_v1", "U2_v2",
             "T1", "T2", "Ttot", "entropy"
         )
@@ -162,18 +176,23 @@ class EnergyLog:
     """
     def __init__(self):
         self.t = []
+        self.E_electric = []
+        self.E_magnetic = []
         self.E_field = []
         self.E_kinetic = []
         self.E_total = []
 
     def append(self, t, v11, v12, w1, v21, v22, w2, E1, E2, B3, par):
-        fe = field_energy(E1, E2, B3, par)
+        fe_e = electric_energy(E1, E2, par)
+        fe_b = magnetic_energy(B3, par)
         ke = kinetic_energy(v11, v12, w1, v21, v22, w2, par)
         self.t.append(float(t))
-        self.E_field.append(float(fe))
+        self.E_electric.append(float(fe_e))
+        self.E_magnetic.append(float(fe_b))
+        self.E_field.append(float(fe_e + fe_b))
         self.E_kinetic.append(float(ke))
-        self.E_total.append(float(fe + ke))
+        self.E_total.append(float(fe_e + fe_b + ke))
 
     def as_dict(self):
-        names = ("t", "E_field", "E_kinetic", "E_total")
+        names = ("t", "E_electric", "E_magnetic", "E_field", "E_kinetic", "E_total")
         return {name: np.asarray(getattr(self, name)) for name in names}

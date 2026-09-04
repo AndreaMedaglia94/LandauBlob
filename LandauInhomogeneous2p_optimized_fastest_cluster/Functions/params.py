@@ -106,12 +106,24 @@ class Params:
     # current_model='charge' uses J=sum q_s int v f_s dv.
     # current_model='charge_over_mass' uses q_s/m_s instead, for alternative
     # normalisations where weights represent mass-like density.
+    #
+    # initial_field='analytic_landau'  : E1 from the exact cos(kx) datum,
+    #                                     E2=B3=0.
+    # initial_field='poisson_particles': E1 from a numeric Poisson solve of
+    #                                     the sampled particle density,
+    #                                     E2=B3=0.
+    # initial_field='analytic_weibel'  : E1=E2=0 (uniform density in x is
+    #                                     exactly self-consistent), and
+    #                                     B3(0,x)=B3_seed_amplitude*sin(k*x)
+    #                                     seeds the instability (Bailo,
+    #                                     Carrillo & Hu 2024, Sec 3.2.2).
     # ------------------------------------------------------------------
     field_solver: Literal["ampere", "yee"] = "ampere"
     current_model: Literal["charge", "charge_over_mass"] = "charge"
     rho_background: float = 0.0
-    initial_field: Literal["analytic_landau", "poisson_particles"] = "analytic_landau"
+    initial_field: Literal["analytic_landau", "poisson_particles", "analytic_weibel"] = "analytic_landau"
     remove_mean_E1: bool = True
+    B3_seed_amplitude: float = 0.0
 
     # ------------------------------------------------------------------
     # Random batch optimisation for Step III of the collision operator.
@@ -165,20 +177,35 @@ class Params:
     output_prefix: str = "landau_damping_2species"
 
     # ------------------------------------------------------------------
-    # Reconstruction resolution for the f(x,v) marginals -- used both for
-    # the .mat-saved 'distributions' snapshots (dist_save_interval above)
-    # and for the marginal figures (main driver's PLOT_MARGINAL_TIMES).
-    # None (default) reuses the physics velocity resolution Nv1_v1/Nv1_v2/
-    # Nv2_v1/Nv2_v2 above -- the same numbers that set the particle count.
-    # Set these to decouple the diagnostic grid from the particle count,
-    # e.g. for a finer reconstruction without more particles. The velocity
-    # *domain* half-width is always the physics Lv1_v1/Lv1_v2/Lv2_v1/Lv2_v2
-    # -- only the number of bins is decoupled here.
+    # Reconstruction grid for the f(x,v) and f(v1,v2) marginals -- used
+    # both for the .mat-saved snapshots (dist_save_interval above) and
+    # for the marginal figures (main driver's PLOT_MARGINAL_TIMES).
+    #
+    # Resolution (bin count): dist_Nv1_v1/Nv1_v2/Nv2_v1/Nv2_v2. None
+    # (default) reuses the physics velocity resolution Nv1_v1/etc -- the
+    # same numbers that set the particle count.
+    #
+    # Domain (half-width): dist_Lv1_v1/Lv1_v2/Lv2_v1/Lv2_v2. None
+    # (default) reuses the physics velocity domain Lv1_v1/etc -- the same
+    # truncation window particles are sampled in.
+    #
+    # Both are purely diagnostic/reconstruction settings: they only
+    # affect what is plotted and what is written to the 'distributions'/
+    # 'velocity_marginals' entries of the saved .mat file. They have no
+    # effect whatsoever on particle sampling, the field solver, the
+    # collision operator, or the time-stepping -- those always use the
+    # physics Nv1_v1/etc and Lv1_v1/etc directly. Set these independently
+    # to e.g. zoom the reconstruction/figures into a narrower window than
+    # the physics truncation domain, without touching the dynamics.
     # ------------------------------------------------------------------
     dist_Nv1_v1: Optional[int] = None
     dist_Nv1_v2: Optional[int] = None
     dist_Nv2_v1: Optional[int] = None
     dist_Nv2_v2: Optional[int] = None
+    dist_Lv1_v1: Optional[float] = None
+    dist_Lv1_v2: Optional[float] = None
+    dist_Lv2_v1: Optional[float] = None
+    dist_Lv2_v2: Optional[float] = None
 
     # ------------------------------------------------------------------
     # Derived quantities.
@@ -224,8 +251,10 @@ class Params:
             raise ValueError("field_solver must be 'ampere' or 'yee'")
         if self.current_model not in ("charge", "charge_over_mass"):
             raise ValueError("current_model must be 'charge' or 'charge_over_mass'")
-        if self.initial_field not in ("analytic_landau", "poisson_particles"):
-            raise ValueError("initial_field must be 'analytic_landau' or 'poisson_particles'")
+        if self.initial_field not in ("analytic_landau", "poisson_particles", "analytic_weibel"):
+            raise ValueError(
+                "initial_field must be 'analytic_landau', 'poisson_particles', or 'analytic_weibel'"
+            )
         if self.random_batches <= 0:
             raise ValueError("random_batches must be positive")
         if self.record_interval <= 0.0:
@@ -253,6 +282,21 @@ class Params:
 
         if min(self.Lv1_v1, self.Lv1_v2, self.Lv2_v1, self.Lv2_v2) <= 0.0:
             raise ValueError("all velocity-domain half-widths must be positive")
+
+        # dist_Lv1_v1/etc default to the physics domain but are otherwise
+        # fully independent of it. This runs *after* auto_Lv2_equal_m_epsi
+        # above, so a None default for species 2 tracks the auto-scaled
+        # physics domain unless explicitly overridden here.
+        if self.dist_Lv1_v1 is None:
+            self.dist_Lv1_v1 = self.Lv1_v1
+        if self.dist_Lv1_v2 is None:
+            self.dist_Lv1_v2 = self.Lv1_v2
+        if self.dist_Lv2_v1 is None:
+            self.dist_Lv2_v1 = self.Lv2_v1
+        if self.dist_Lv2_v2 is None:
+            self.dist_Lv2_v2 = self.Lv2_v2
+        if min(self.dist_Lv1_v1, self.dist_Lv1_v2, self.dist_Lv2_v1, self.dist_Lv2_v2) <= 0.0:
+            raise ValueError("dist_Lv1_v1/dist_Lv1_v2/dist_Lv2_v1/dist_Lv2_v2 must be positive")
 
         self.N1 = self.Nx * self.Nv1_v1 * self.Nv1_v2 * self.Nc1
         self.N2 = self.Nx * self.Nv2_v1 * self.Nv2_v2 * self.Nc2

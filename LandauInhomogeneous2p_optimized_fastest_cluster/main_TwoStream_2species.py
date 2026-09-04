@@ -9,7 +9,7 @@ from scipy.io import savemat
 
 from Functions.params import Params, params_to_matlab_dict
 # depends on the test we want to run, we can choose the initialization function 
-from Functions.initialize import initialize_particles_landau_damping_2species
+from Functions.initialize_two_stream import initialize_particles_two_stream
 #
 from Functions.initialize import BatchIdGenerator
 
@@ -27,17 +27,17 @@ from Functions.progress import ProgressBar
 
 BASE_KWARGS = dict(
     # Landau damping datum.  Species 1 perturbed; species 2 initially uniform.
-    alpha1=0.1,
+    alpha1=0.005,
     alpha2=0.0,
-    k=0.5,
+    k=0.2,
 
     # Common x grid; separate velocity grids for electrons and ions.
     Nx=128,
     Nv1_v1=32,
     Nv1_v2=32,
     Nc1=8,
-    Lv1_v1=4.0,
-    Lv1_v2=4.0,
+    Lv1_v1=6.0,
+    Lv1_v2=6.0,
     Nv2_v1=32,
     Nv2_v2=32,
     Nc2=8,
@@ -51,6 +51,8 @@ BASE_KWARGS = dict(
     n2=1.0,
     temp1=1.0,
     temp2=1.0,
+
+    u1_v1_0=2.4, u2_v1_0=0.0,    # electrons two-stream, ions plain Maxwellian
 
     # 1D-2V Coulombian Landau kernel: gam=-2.
     gam=-2.0,
@@ -90,7 +92,7 @@ BASE_KWARGS = dict(
     save_results=True,
     save_distributions=True,
     # depends on the test we want to run, we can choose the output prefix
-    output_prefix="landau_damping_2species",
+    output_prefix="2stream_2species",
     #
 
     # Reconstruction resolution for the saved/plotted marginals
@@ -398,7 +400,7 @@ def run(par, make_plots=MAKE_PLOTS, plot_marginal_times=PLOT_MARGINAL_TIMES):
     print(f"make_plots: {make_plots}")
 
     # depends on the test we want to run, we can choose the initialization function
-    x1, v11, v12, w1, x2, v21, v22, w2 = initialize_particles_landau_damping_2species(par)
+    x1, v11, v12, w1, x2, v21, v22, w2 = initialize_particles_two_stream(par)
     #
     E1, E2, B3 = initialize_fields(x1, v11, v12, w1, x2, v21, v22, w2, par)
 

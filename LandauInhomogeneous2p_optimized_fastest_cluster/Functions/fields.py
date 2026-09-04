@@ -146,6 +146,12 @@ def initialize_fields(x1, v11, v12, w1, x2, v21, v22, w2, par):
         E1 = (coeff / par.k) * np.sin(par.k * par.x_grid)
         if par.remove_mean_E1:
             E1 -= np.mean(E1)
+    elif par.initial_field == "analytic_weibel":
+        # Weibel datum (Bailo, Carrillo & Hu 2024, Sec 3.2.2): the density
+        # is uniform in x, so E1=0 is the exact self-consistent solution
+        # of Gauss's law ("initialised self-consistently (to zero)") --
+        # no Poisson solve of the (noisy, finite-N) sampled density needed.
+        E1 = np.zeros(par.Nx, dtype=float)
     else:
         rho, _, _ = deposit_charge_current_to_primal_grid(
             x1, v11, v12, w1, x2, v21, v22, w2,
@@ -156,7 +162,15 @@ def initialize_fields(x1, v11, v12, w1, x2, v21, v22, w2, par):
         E1 = solve_periodic_poisson_E_from_charge_density(rho, par)
 
     E2 = np.zeros(par.Nx, dtype=float)
-    B3 = np.zeros(par.Nx, dtype=float)
+
+    if par.initial_field == "analytic_weibel":
+        # Seed the instability through B3 alone: B3(0,x) = alpha*sin(kx),
+        # evaluated on the dual (face) grid, x_faces = i*eta -- the same
+        # grid used by interpolate_dual_to_particles below.
+        B3 = par.B3_seed_amplitude * np.sin(par.k * par.x_faces)
+    else:
+        B3 = np.zeros(par.Nx, dtype=float)
+
     return E1, E2, B3
 
 

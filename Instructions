@@ -13,3 +13,8 @@ git status
 git add .
 git commit -m "Descrizione delle modifiche"
 git push
+
+RUN:
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMBA_NUM_THREADS=8 python nome_codice.py   
+
+
